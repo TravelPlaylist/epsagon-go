@@ -3,6 +3,7 @@ package epsagon
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/epsagon/epsagon-go/protocol"
@@ -161,11 +162,13 @@ func (handler *epsagonLambdaWrapper) InvokeClientLambda(
 	ctx context.Context, payload json.RawMessage, invokeInfo *invocationData) {
 	defer func() {
 		invokeInfo.thrownError = recover()
+		stack := string(debug.Stack())
 		if invokeInfo.thrownError != nil {
+			invokeInfo.thrownError = errors.New(stack)
 			invokeInfo.ExceptionInfo = &protocol.Exception{
 				Type: "Runtime Error",
 				Message: fmt.Sprintf("%v", invokeInfo.thrownError),
-				Traceback: string(debug.Stack()),
+				Traceback: stack,
 				Time:      GetTimestamp(),
 			}
 			invokeInfo.errorStatus = protocol.ErrorCode_EXCEPTION
